@@ -21,6 +21,7 @@ void initKeys(void);
 void handleKeyPress(xcb_keysym_t keysym);
 int init(void);
 void run(void);
+void quit(void);
 
 int main(void)
 {
@@ -59,7 +60,7 @@ void initKeys(void)
 // 	switch(keysym) {
 // 		case XK_c:
 // 		{
-// 			running = False;
+// 		    quit();
 // 			break;
 // 		}
 // 	}
@@ -107,4 +108,9 @@ void run(void)
 		        break;	   
 		}
 	}
+}
+
+void quit(void)
+{
+	running = False;
 }
