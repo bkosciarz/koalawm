@@ -10,46 +10,22 @@
 #define False 0
 #define bool short
 
+/*variables*/
 static bool running = True;
 static xcb_keysym_t keys[] = { XK_c };
-
 static xcb_connection_t *dpy;
 static xcb_screen_t *screen;
 
+/*functions*/
 void initKeys(void);
 void handleKeyPress(xcb_keysym_t keysym);
+int init(void);
+void run(void);
 
-int main() {
-//	xcb_drawable_t win;
-//	xcb_drawable_t root;
-    /* Open a connection to the X server that uses the value 
-	 * of the DISPLAY ev and sets the screen to 0
-	 */
-	dpy = xcb_connect(NULL, NULL);
-    if(xcb_connection_has_error(dpy))
-		return 1; //there was an error with the connection
-
-	screen = xcb_setup_roots_iterator(xcb_get_setup(dpy)).data;
-//	root = screen->root;
-
-	initKeys();
-
-	xcb_flush(dpy);
-
-	xcb_generic_event_t *event;
-	while(running) {
-		event = xcb_wait_for_event(dpy);
-        switch(event->response_type & ~0x80) {
-			case XCB_KEY_PRESS:		
-			{
-				// handleKeyPress(xcb_get_keysym(event->detail));
-				break;
-			}
-		    default:
-		        break;	   
-		}
-	}
-
+int main(void)
+{
+    init();
+	run();
 	return 0;
 }
 
@@ -90,4 +66,45 @@ void initKeys(void)
 // }
 
 
+/*
+ * returns 0 on success
+ */
+int init(void)
+{
 
+//	xcb_drawable_t win;
+//	xcb_drawable_t root;
+    /* Open a connection to the X server that uses the value 
+	 * of the DISPLAY ev and sets the screen to 0
+	 */
+	dpy = xcb_connect(NULL, NULL);
+    if(xcb_connection_has_error(dpy))
+		return 1; //there was an error with the connection
+	//should look into err.h^^^
+
+	screen = xcb_setup_roots_iterator(xcb_get_setup(dpy)).data;
+//	root = screen->root;
+
+	initKeys();
+	return 0; 
+}
+
+void run(void)
+{
+	xcb_generic_event_t *event;
+	while(running) 
+	{
+		xcb_flush(dpy);
+		event = xcb_wait_for_event(dpy);
+        switch(event->response_type & ~0x80) 
+		{
+			case XCB_KEY_PRESS:		
+			{
+				// handleKeyPress(xcb_get_keysym(event->detail));
+				break;
+			}
+		    default:
+		        break;	   
+		}
+	}
+}
