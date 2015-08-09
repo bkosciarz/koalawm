@@ -45,9 +45,12 @@ int main() {
 
 	xcb_generic_event_t *event;
 	while(running) {
-		event = xcb_wait_for_event(dpy)
+		event = xcb_wait_for_event(dpy);
         switch(event->response_type & ~0x80) {
-			case XCB_KEY_PRESS:		    
+			case XCB_KEY_PRESS:		   
+			    break;
+		    default:
+		        break;	   
 		}
 	}
 
