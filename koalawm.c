@@ -13,7 +13,8 @@
 /*variables*/
 static bool running = True;
 static xcb_keysym_t keys[] = { 
-	XK_c // + WINDOWS: quits out of window manager
+	XK_c, // + WINDOWS: quits out of window manager
+	XK_Return // + WINDOWS: starts a terminal
 };
 static xcb_connection_t *dpy;
 static xcb_screen_t *screen;
@@ -75,6 +76,11 @@ void handleKeyPress(xcb_generic_event_t *event)
 		case XK_c:
 		{
 		    quit();
+			break;
+		}
+		case XK_Return:
+		{
+			// call function to start terminal
 			break;
 		}
 	}
