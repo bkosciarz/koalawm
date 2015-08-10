@@ -12,13 +12,15 @@
 
 /*variables*/
 static bool running = True;
-static xcb_keysym_t keys[] = { XK_c };
+static xcb_keysym_t keys[] = { 
+	XK_c // + WINDOWS: quits out of window manager
+};
 static xcb_connection_t *dpy;
 static xcb_screen_t *screen;
 
 /*functions*/
 void initKeys(void);
-void handleKeyPress(xcb_keysym_t keysym);
+void handleKeyPress(xcb_generic_event_t *event);
 int init(void);
 void run(void);
 void quit(void);
@@ -35,7 +37,7 @@ void initKeys(void)
 	int i, j;
 	for(i = 0; i < LENGTH(keys); ++i)
 	{
-		//get keycodes
+		//get keycode from keysym
 		xcb_key_symbols_t 	*keysyms;
 		xcb_keycode_t 		*keycode;
 
@@ -55,16 +57,28 @@ void initKeys(void)
 	}
 }
 
-// void handleKeyPress(xcb_keysym_t keysym)
-// {
-// 	switch(keysym) {
-// 		case XK_c:
-// 		{
-// 		    quit();
-// 			break;
-// 		}
-// 	}
-// }
+void handleKeyPress(xcb_generic_event_t *event)
+{
+	xcb_key_press_event_t 	*ev 	= (xcb_key_press_event_t *)event;
+	xcb_keycode_t 			keycode = ev->detail;
+
+	//get keysym from keycode
+	xcb_key_symbols_t 	*keysyms;
+	xcb_keysym_t 		 keysym;
+
+	if (!(keysyms = xcb_key_symbols_alloc(dpy)))
+        exit(1);
+    keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
+    xcb_key_symbols_free(keysyms);
+
+	switch(keysym) {
+		case XK_c:
+		{
+		    quit();
+			break;
+		}
+	}
+}
 
 
 /*
@@ -101,7 +115,7 @@ void run(void)
 		{
 			case XCB_KEY_PRESS:		
 			{
-				// handleKeyPress(xcb_get_keysym(event->detail));
+				handleKeyPress(event);
 				break;
 			}
 		    default:
