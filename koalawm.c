@@ -6,14 +6,17 @@
 #define bool short
 
 static bool running = True;
+static xcb_keysym_t keys[] = { XK_c };
+
+void initKeys(void);
+void handleKeyPress(xcb_keysym_t keysym);
 
 int main() {
 	xcb_connection_t *dpy;
 	xcb_screen_t *screen;
 //	xcb_drawable_t win;
 //	xcb_drawable_t root;
-    xcb_window_t win;
-
+    xcb_window_t win
     /* Open a connection to the X server that uses the value 
 	 * of the DISPLAY ev and sets the screen to 0
 	 */
@@ -24,31 +27,19 @@ int main() {
 	screen = xcb_setup_roots_iterator(xcb_get_setup(dpy)).data;
 //	root = screen->root;
 
-    win = xcb_generate_id(dpy);
-	uint32_t mask =  XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-	uint32_t values[2];
-	values[0] = screen->white_pixel;
-	values[1] = XCB_EVENT_MASK_EXPOSURE;
-	xcb_create_window(dpy,
-			          XCB_COPY_FROM_PARENT,
-					  win,
-					  screen->root,
-					  0, 0,
-					  150, 150,
-					  10,
-					  XCB_WINDOW_CLASS_INPUT_OUTPUT,
-					  screen->root_visual,
-					  mask, values);
-	
-	xcb_map_window(dpy, win);
+	initKeys();
+
 	xcb_flush(dpy);
 
 	xcb_generic_event_t *event;
 	while(running) {
 		event = xcb_wait_for_event(dpy);
         switch(event->response_type & ~0x80) {
-			case XCB_KEY_PRESS:		   
-			    break;
+			case XCB_KEY_PRESS:		
+			{
+				handleKeyPress(xcb_get_keysym(event->detail));
+				break;
+			}
 		    default:
 		        break;	   
 		}
@@ -56,5 +47,41 @@ int main() {
 
 	return 0;
 }
+
+void initKeys(void)
+{
+	for(i = 0; i < LENGTH(keys); ++i)
+	{
+		//get keycodes
+		xcb_key_symbols_t 	*keysms;
+		xcb_keycode_t 		*keycode;
+
+		if (!(keysyms = xcb_key_symbols_alloc(dis)))
+        	exit(1);
+
+        keycode = xcb_key_symbols_get_keycode(keysyms, keys[i]);
+        xcb_key_symbols_free(keysyms);
+
+        for(j = 0; keycode[j] != XCB_NO_SYMBOL; ++j)
+        {
+        	xcb_grab_key(dpy, 1, root, XCB_MOD_MASK_4, 
+        				keycode[j], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        }
+
+        free(keycode);
+	}
+}
+
+void handleKeyPress(xcb_keysym_t keysym)
+{
+	switch(keysym) {
+		case XK_c:
+		{
+			running = False;
+			break;
+		}
+	}
+}
+
 
 
