@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
+
+#include "config.h"
 
 #define LENGTH(x) (sizeof(x)/sizeof(*x)) //only works on staticly allocated memory
 #define True 1
@@ -12,10 +15,6 @@
 
 /*variables*/
 static bool running = True;
-static xcb_keysym_t keys[] = { 
-	XK_c, // + WINDOWS: quits out of window manager
-	XK_Return // + WINDOWS: starts a terminal
-};
 static xcb_connection_t *dpy;
 static xcb_screen_t *screen;
 
@@ -25,6 +24,7 @@ void handleKeyPress(xcb_generic_event_t *event);
 int init(void);
 void run(void);
 void quit(void);
+void launch(char *const prog[]);
 
 int main(void)
 {
@@ -80,7 +80,7 @@ void handleKeyPress(xcb_generic_event_t *event)
 		}
 		case XK_Return:
 		{
-			// call function to start terminal
+			launch(terminal);
 			break;
 		}
 	}
@@ -133,4 +133,10 @@ void run(void)
 void quit(void)
 {
 	running = False;
+}
+
+void launch(char *const prog[])
+{
+	fork();
+	execv(prog[0], prog);
 }
