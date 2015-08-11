@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
-
-#include "config.h"
 
 #define LENGTH(x) (sizeof(x)/sizeof(*x)) //only works on staticly allocated memory
 #define True 1
@@ -26,6 +25,19 @@ void run(void);
 void quit(void);
 void launch(char *const prog[]);
 
+/* key structure that holds the modifiers pressed, the keysym, 
+ * a corresponding function and it's arguments
+ */
+typedef struct {
+    uint32_t modifier;    
+    xcb_keysym_t keysym;
+	void (*fptr)(char ** args); //send null terminated array of void* args
+	char ** args;
+} key;
+
+
+#include "config.h"
+
 int main(void)
 {
     init();
@@ -35,27 +47,30 @@ int main(void)
 
 void initKeys(void)
 {
+	//get keycode from keysym
+	xcb_key_symbols_t 	*keysyms;
+	xcb_keycode_t 		*keycode;
+
+    xcb_ungrab_key(dpy, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
+
+	if (!(keysyms = xcb_key_symbols_alloc(dpy)))
+		exit(1);
+
 	int i, j;
 	for(i = 0; i < LENGTH(keys); ++i)
 	{
-		//get keycode from keysym
-		xcb_key_symbols_t 	*keysyms;
-		xcb_keycode_t 		*keycode;
-
-		if (!(keysyms = xcb_key_symbols_alloc(dpy)))
-        	exit(1);
-
-        keycode = xcb_key_symbols_get_keycode(keysyms, keys[i]);
-        xcb_key_symbols_free(keysyms);
+        keycode = xcb_key_symbols_get_keycode(keysyms, keys[i].keysym);
 
         for(j = 0; keycode[j] != XCB_NO_SYMBOL; ++j)
         {
-        	xcb_grab_key(dpy, 1, screen->root, XCB_MOD_MASK_4, 
+			//does not account for other modifiers such as caps or numlock
+        	xcb_grab_key(dpy, 1, screen->root, keys[i].modifier, 
         				keycode[j], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
         }
 
         free(keycode);
 	}
+	xcb_key_symbols_free(keysyms); //free allocation
 }
 
 void handleKeyPress(xcb_generic_event_t *event)
@@ -71,9 +86,9 @@ void handleKeyPress(xcb_generic_event_t *event)
         exit(1);
     keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
     xcb_key_symbols_free(keysyms);
-
+/*
 	switch(keysym) {
-		case XK_c:
+		case XK_q:
 		{
 		    quit();
 			break;
@@ -84,6 +99,8 @@ void handleKeyPress(xcb_generic_event_t *event)
 			break;
 		}
 	}
+*/
+
 }
 
 
