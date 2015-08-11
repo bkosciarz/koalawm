@@ -1,0 +1,20 @@
+-----------------------------
+TODO:
+	Data structure for window
+		x, y, width, height,  next pointer, prev pointer
+	Data structure for Desktop
+		head pointer for linked list, tail pointer for linked list, # Windows
+	Data structure for keys
+		modifier, key, function, args
+	Jump Table for keys in config.h, handle key function updated (#include config after data struct declarations)
+		array of keys
+	Algorithm for basic tiling of WM
+		size of root window, # of windows, etc
+	Find a way to get window information of fork'd(SubStructureRedirect mask on root window?)
+	Linked List of Windows
+		stored in Desktop data struct
+
+TODOLATER:
+	Switch between desktops
+	Linked List of Windows for each Desktop
+-----------------------------
