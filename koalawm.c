@@ -22,9 +22,8 @@ void initKeys(void);
 void handleKeyPress(xcb_generic_event_t *event);
 int init(void);
 void run(void);
-void quit(void);
-void launch(char *const prog[]);
-
+void quit();
+void launch(char * const prog[]);
 /* 
  * key structure that holds the modifiers pressed, the keysym, 
  * a corresponding function and it's arguments
@@ -32,8 +31,8 @@ void launch(char *const prog[]);
 typedef struct {
     uint32_t modifier;    
     xcb_keysym_t keysym;
-	void (*fptr)(char * args[]); //send null terminated array of void* args
-	char ** args;
+	void (*fptr)(const char * args[]); //send null terminated array of void* args
+	const char ** args;
 } key;
 
 /*
@@ -157,12 +156,12 @@ void run(void)
 	}
 }
 
-void quit(void)
+void quit()
 {
 	running = False;
 }
 
-void launch(char *const prog[])
+void launch(char * const prog[])
 {
 	fork();
 	execv(prog[0], prog);

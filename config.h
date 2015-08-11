@@ -12,9 +12,8 @@ static xcb_keysym_t keys[] = {
 	XK_r // +WINDOWS: starts a menu
 };
 */
-
 static key keys[] = {
-    {MASTER_KEY,        XK_q,        quit,        {NULL}},     
+    {MASTER_KEY,        XK_q,        quit,        NULL},     
     {MASTER_KEY,        XK_Return,   launch,      terminal}
 };
 
