@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = 
+CFLAGS = -std=c11 -Wall -Wextra -pedantic
 LFLAGS = -lxcb -lxcb-keysyms
 
 all: koalawm

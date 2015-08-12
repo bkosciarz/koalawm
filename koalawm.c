@@ -7,7 +7,7 @@
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
 
-#define LENGTH(x) (sizeof(x)/sizeof(*x)) //only works on staticly allocated memory
+#define LENGTH(x) ((int)sizeof(x)/(int)sizeof(*x)) //only works on staticly allocated memory
 #define True 1
 #define False 0
 #define bool short
@@ -25,16 +25,31 @@ void run(void);
 void quit(void);
 void launch(char *const prog[]);
 
-/* key structure that holds the modifiers pressed, the keysym, 
+/* 
+ * key structure that holds the modifiers pressed, the keysym, 
  * a corresponding function and it's arguments
  */
 typedef struct {
     uint32_t modifier;    
     xcb_keysym_t keysym;
-	void (*fptr)(char ** args); //send null terminated array of void* args
+	void (*fptr)(char * args[]); //send null terminated array of void* args
 	char ** args;
 } key;
 
+/*
+ * Window structure that holds coordinates for managing windows on screen
+ * The next and previous pointers are for maintaining position in the linked list
+ */
+
+typedef struct {
+	int x; // change these to whatever XCB's coordinates are in
+	int y; // ^
+	int height;
+	int width; //^
+
+	struct window * next;
+	struct window * prev; //DLL?
+} window;
 
 #include "config.h"
 
@@ -67,7 +82,7 @@ void initKeys(void)
         	xcb_grab_key(dpy, 1, screen->root, keys[i].modifier, 
         				keycode[j], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
         }
-
+        printf("initkey %d\n", i);
         free(keycode);
 	}
 	xcb_key_symbols_free(keysyms); //free allocation
@@ -86,21 +101,16 @@ void handleKeyPress(xcb_generic_event_t *event)
         exit(1);
     keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
     xcb_key_symbols_free(keysyms);
-/*
-	switch(keysym) {
-		case XK_q:
-		{
-		    quit();
-			break;
-		}
-		case XK_Return:
-		{
-			launch(terminal);
-			break;
-		}
-	}
-*/
 
+    int i;
+    for(i = 0; i < LENGTH(keys); ++i)
+    {
+    	if(keysym == keys[i].keysym)
+    	{
+    		keys[i].fptr(keys[i].args);
+    		break;
+    	}
+    }
 }
 
 
