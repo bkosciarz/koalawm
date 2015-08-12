@@ -8,14 +8,9 @@
 #include <X11/keysym.h>
 
 #define LENGTH(x) ((int)sizeof(x)/(int)sizeof(*x)) //only works on staticly allocated memory
-#define True 1
-#define False 0
+#define true 1
+#define false 0
 #define bool short
-
-/*variables*/
-static bool running = True;
-static xcb_connection_t *dpy;
-static xcb_screen_t *screen;
 
 typedef union{
     const char ** com;
@@ -45,29 +40,37 @@ typedef struct {
 	int height;
 	int width; //^
 
-	struct window * next;
-	struct window * prev; //DLL?
-} window;
+	struct window_t * w_next;
+	struct window_t * w_prev; //DLL?
+} window_t;
 
 typedef struct {
 	char * name; //name for current workspace
 	int num_windows;
 	int tiling_mode; //for future when multiple tiling modes
 
-    window * head;
+    window_t * w_head;
+	window_t * w_tail;
 
-	struct desktop * next;
-	struct desktop * prev;
-} desktop;
+	struct desktop_t * d_next;
+	struct desktop_t * d_prev;
+} desktop_t;
 
 typedef struct {
-	int width; //size of screen
-	int height;
+	uint16_t width; //size of screen
+	uint16_t height;
     bool panel; //show panel
     int num_desktops;
 
-    desktop * head;
-} master;
+    desktop_t * d_head;
+	desktop_t * d_tail;
+} master_t;
+
+/*variables*/
+static bool running = true;
+static xcb_connection_t *dpy;
+static xcb_screen_t *screen;
+static master_t * master;
 
 /*functions*/
 void initKeys(void);
@@ -76,6 +79,8 @@ int init(void);
 void run(void);
 void quit();
 void launch(const Arg *arg);
+void initStructs(void);
+void initDesktop(desktop_t * d_node);
 
 #include "config.h"
 
@@ -157,10 +162,54 @@ int init(void)
 	//should look into err.h^^^
 
 	screen = xcb_setup_roots_iterator(xcb_get_setup(dpy)).data;
-//	root = screen->root;
 
 	initKeys();
+	initStructs();
+
 	return 0; 
+}
+
+void initStructs(void)
+{
+    master = malloc(sizeof(master_t));
+    master->width = screen->width_in_pixels;
+	master->height = screen->height_in_pixels;
+	master->panel = SHOW_PANEL;
+	master->num_desktops = NUM_DESKTOPS;
+
+	desktop_t * d_temp1 = (desktop_t *)malloc(sizeof(desktop_t));
+    desktop_t * d_temp2;
+	d_temp1->d_prev = NULL;
+	master->d_head = d_temp1;
+ 
+	/* create linked list of desktops*/
+	int i;
+	for(i = 0; i < master->num_desktops-1; i++)
+	{
+		initDesktop(d_temp1);
+		d_temp2 = (desktop_t *)malloc(sizeof(desktop_t));
+		d_temp1->d_next = d_temp2;
+		d_temp2->d_prev = d_temp1;
+        d_temp1 = d_temp2;
+	}
+	initDesktop(d_temp1);
+    d_temp1->d_next = NULL;
+	master->d_tail = d_temp1;
+
+	//need to initialize the desktop structs
+}
+
+void initDesktop(desktop_t * d_node)
+{
+	if(d_node)
+	{
+        //d_node->name = "tempname";
+        d_node->num_windows = 0;
+        d_node->w_head = NULL;
+        d_node->w_tail = NULL;
+        //would be cool if there was some default windows that we could launch
+        //d_node->tiling_mode = somekindofdefault;
+	}
 }
 
 void run(void)
@@ -185,7 +234,8 @@ void run(void)
 
 void quit()
 {
-	running = False;
+	running = false;
+	xcb_disconnect(dpy);
 }
 
 void launch(const Arg *arg)
