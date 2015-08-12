@@ -1,12 +1,10 @@
 -----------------------------
 TODO:
-	Data structure for Desktop
-		head pointer for linked list, tail pointer for linked list, # Windows
 	Algorithm for basic tiling of WM
 		size of root window, # of windows, etc
 	Find a way to get window information of fork'd(SubStructureRedirect mask on root window?)
-	Linked List of Windows
-		stored in Desktop data struct
+    Error Handling
+    Commenting
 
 TODOLATER:
 -----------------------------
@@ -18,6 +16,12 @@ DONEPLSCONFIRM:
 -----------------------------
 	Data structure for window
 		x, y, width, height,  next pointer, prev pointer
+	Data structure for Desktop
+		head pointer for linked list, tail pointer for linked list, # Windows
+    Data structure for Master(is that name fine?)
+        head pointer to desktop ll, size of screen, bool to show the panel, num desktops        
+	Linked List of Windows
+		stored in Desktop data struct
 
 FORSUREDONE:
 -----------------------------
@@ -26,6 +30,6 @@ FORSUREDONE:
 	Jump Table for keys in config.h, handle key function updated (#include config after data struct declarations)
 		array of keys
 
-BUGS:
+BUGS & STUFF TO FIX:
 -----------------------------
      Launching with dmenu opens window & gives control to native window manager(not DISPLAY 1)

@@ -49,6 +49,26 @@ typedef struct {
 	struct window * prev; //DLL?
 } window;
 
+typedef struct {
+	char * name; //name for current workspace
+	int num_windows;
+	int tiling_mode; //for future when multiple tiling modes
+
+    window * head;
+
+	struct desktop * next;
+	struct desktop * prev;
+} desktop;
+
+typedef struct {
+	int width; //size of screen
+	int height;
+    bool panel; //show panel
+    int num_desktops;
+
+    desktop * head;
+} master;
+
 /*functions*/
 void initKeys(void);
 void handleKeyPress(xcb_generic_event_t *event);
