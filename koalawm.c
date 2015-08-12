@@ -17,13 +17,11 @@ static bool running = True;
 static xcb_connection_t *dpy;
 static xcb_screen_t *screen;
 
-/*functions*/
-void initKeys(void);
-void handleKeyPress(xcb_generic_event_t *event);
-int init(void);
-void run(void);
-void quit();
-void launch(char * const prog[]);
+typedef union{
+    const char ** com;
+	const int i;
+} Arg;
+
 /* 
  * key structure that holds the modifiers pressed, the keysym, 
  * a corresponding function and it's arguments
@@ -31,9 +29,10 @@ void launch(char * const prog[]);
 typedef struct {
     uint32_t modifier;    
     xcb_keysym_t keysym;
-	void (*fptr)(const char * args[]); //send null terminated array of void* args
-	const char ** args;
+	void (*fptr)(const Arg *); //send null terminated array of void* args
+	const Arg arg;
 } key;
+
 
 /*
  * Window structure that holds coordinates for managing windows on screen
@@ -49,6 +48,14 @@ typedef struct {
 	struct window * next;
 	struct window * prev; //DLL?
 } window;
+
+/*functions*/
+void initKeys(void);
+void handleKeyPress(xcb_generic_event_t *event);
+int init(void);
+void run(void);
+void quit();
+void launch(const Arg *arg);
 
 #include "config.h"
 
@@ -106,7 +113,7 @@ void handleKeyPress(xcb_generic_event_t *event)
     {
     	if(keysym == keys[i].keysym)
     	{
-    		keys[i].fptr(keys[i].args);
+    		keys[i].fptr(&keys[i].arg);
     		break;
     	}
     }
@@ -161,8 +168,8 @@ void quit()
 	running = False;
 }
 
-void launch(char * const prog[])
+void launch(const Arg *arg)
 {
 	fork();
-	execv(prog[0], prog);
+	execv((char*)(arg->com[0]), (char**)(arg->com));
 }
