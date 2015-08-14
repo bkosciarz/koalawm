@@ -5,6 +5,8 @@ TODO:
 	Find a way to get window information of fork'd(SubStructureRedirect mask on root window?)
     Error Handling
     Commenting
+    Event function Array
+    Terminal does not call map request on start up, unclear why.
 
 TODOLATER:
 -----------------------------

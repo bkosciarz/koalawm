@@ -56,6 +56,8 @@ typedef struct {
 	struct desktop_t * d_prev;
 } desktop_t;
 
+
+// YO WHY LINKED LIST OF DESKTOPS, Array is ezier as it is static
 typedef struct {
 	uint16_t width; //size of screen
 	uint16_t height;
@@ -70,11 +72,13 @@ typedef struct {
 static bool running = true;
 static xcb_connection_t *dpy;
 static xcb_screen_t *screen;
+static xcb_window_t root;
 static master_t * master;
 
 /*functions*/
 void initKeys(void);
 void handleKeyPress(xcb_generic_event_t *event);
+void handleMapRequest(xcb_generic_event_t *event);
 int init(void);
 void run(void);
 void quit();
@@ -144,6 +148,15 @@ void handleKeyPress(xcb_generic_event_t *event)
     }
 }
 
+void handleMapRequest(xcb_generic_event_t *event)
+{
+	xcb_map_request_event_t   *ev = (xcb_map_request_event_t *)event;
+
+	xcb_window_t 			  window = ev->window;
+
+	
+}
+
 
 /*
  * returns 0 on success
@@ -158,10 +171,20 @@ int init(void)
 	 */
 	dpy = xcb_connect(NULL, NULL);
     if(xcb_connection_has_error(dpy))
-		return 1; //there was an error with the connection
+		return 1; //there was an error with the NUM_DESKTOPSconnection
 	//should look into err.h^^^
 
 	screen = xcb_setup_roots_iterator(xcb_get_setup(dpy)).data;
+	root = screen->root;
+
+	unsigned int values[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT|
+                              XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY|
+                              XCB_EVENT_MASK_PROPERTY_CHANGE|
+                              XCB_EVENT_MASK_BUTTON_PRESS};
+
+    //TODO: error checking using xcb_request_check
+	xcb_change_window_attributes(dpy, root, XCB_CW_EVENT_MASK, values);
+	xcb_flush(dpy);
 
 	initKeys();
 	initStructs();
@@ -224,6 +247,19 @@ void run(void)
 			case XCB_KEY_PRESS:		
 			{
 				handleKeyPress(event);
+				break;
+			}
+			case XCB_MAP_REQUEST:
+			{
+				handleMapRequest(event);
+				break;
+			}
+			case XCB_CONFIGURE_REQUEST:
+			{
+				break;
+			}
+			case XCB_CLIENT_MESSAGE:
+			{
 				break;
 			}
 		    default:

@@ -11,7 +11,7 @@ static const char * menu[] = {"/bin/sh", "-c", "dmenu_run", NULL};
 static key keys[] = {
     {MASTER_KEY,        XK_q,        quit,       {NULL}},     
     {MASTER_KEY,        XK_Return,   launch,     {.com = terminal}},
-    {MASTER_KEY,        XK_r,   launch,     {.com = menu}}
+    {MASTER_KEY,        XK_r,   	 launch,     {.com = menu}}
 };
 
 #endif
