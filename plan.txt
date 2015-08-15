@@ -2,36 +2,55 @@
 TODO:
 	Algorithm for basic tiling of WM
 		size of root window, # of windows, etc
-	Find a way to get window information of fork'd(SubStructureRedirect mask on root window?)
+
     Error Handling
+
     Commenting
+
     Event function Array
-    Terminal does not call map request on start up, unclear why.
+
+    Close window with MASTERKEY + C
+    In CLEANUP: Close all programs and windows
+
 
 TODOLATER:
 -----------------------------
 	Switch between desktops
-	Linked List of Windows for each Desktop
 
 
-DONEPLSCONFIRM:
+TEST/CHECK:
 -----------------------------
-	Data structure for window
-		x, y, width, height,  next pointer, prev pointer
-	Data structure for Desktop
-		head pointer for linked list, tail pointer for linked list, # Windows
-    Data structure for Master(is that name fine?)
-        head pointer to desktop ll, size of screen, bool to show the panel, num desktops        
-	Linked List of Windows
-		stored in Desktop data struct
+	Map Window to specific location
 
-FORSUREDONE:
+
+BUGS & STUFF TO FIX:
+-----------------------------
+    Launching with dmenu opens window & gives control to native window manager(not DISPLAY 1)
+
+    Terminal does not call map request on start up, unclear why.
+
+
+????
+-----------------------------
+What are atoms and cookies in xcb, what is their purpose?
+
+
+
+
+
+
+DONE:
 -----------------------------
 	Data structure for keys
 		modifier, key, function, args
 	Jump Table for keys in config.h, handle key function updated (#include config after data struct declarations)
 		array of keys
-
-BUGS & STUFF TO FIX:
------------------------------
-     Launching with dmenu opens window & gives control to native window manager(not DISPLAY 1)
+	Data structure for Desktop
+		head pointer for linked list, tail pointer for linked list, # Windows
+    Data structure for Master(is that name fine? 10/10 name)
+        head pointer to desktop ll, size of screen, bool to show the panel, num desktops        
+	Linked List of Windows
+		stored in Desktop data struct
+	Data structure for window
+		x, y, width, height,  next pointer, prev pointer
+	Find a way to get window information of fork'd(SubStructureRedirect mask on root window?)

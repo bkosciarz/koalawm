@@ -34,38 +34,36 @@ typedef struct {
  * The next and previous pointers are for maintaining position in the linked list
  */
 
-typedef struct {
+typedef struct window_t {
 	int x; // change these to whatever XCB's coordinates are in
 	int y; // ^
 	int height;
-	int width; //^
+	int width;
+	xcb_window_t xcb_window;
 
 	struct window_t * w_next;
-	struct window_t * w_prev; //DLL?
+	struct window_t * w_prev;
 } window_t;
 
-typedef struct {
+typedef struct desktop_t {
 	char * name; //name for current workspace
 	int num_windows;
-	int tiling_mode; //for future when multiple tiling modes
+	int tiling_mode; //for future when multiple tiling modes, fibonnaci amirite bart.
 
     window_t * w_head;
 	window_t * w_tail;
-
-	struct desktop_t * d_next;
-	struct desktop_t * d_prev;
 } desktop_t;
 
 
 // YO WHY LINKED LIST OF DESKTOPS, Array is ezier as it is static
-typedef struct {
+typedef struct master_t {
 	uint16_t width; //size of screen
 	uint16_t height;
     bool panel; //show panel
     int num_desktops;
+    int currDesktop;
 
-    desktop_t * d_head;
-	desktop_t * d_tail;
+    desktop_t * desktops;
 } master_t;
 
 /*variables*/
@@ -84,7 +82,8 @@ void run(void);
 void quit();
 void launch(const Arg *arg);
 void initStructs(void);
-void initDesktop(desktop_t * d_node);
+void cleanup(void);
+void addWindowToDesktop(int desktopNum, xcb_window_t window, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
 #include "config.h"
 
@@ -92,6 +91,7 @@ int main(void)
 {
     init();
 	run();
+	cleanup();
 	return 0;
 }
 
@@ -117,8 +117,8 @@ void initKeys(void)
         	xcb_grab_key(dpy, 1, screen->root, keys[i].modifier, 
         				keycode[j], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
         }
-        printf("initkey %d\n", i);
         free(keycode);
+
 	}
 	xcb_key_symbols_free(keysyms); //free allocation
 }
@@ -154,8 +154,33 @@ void handleMapRequest(xcb_generic_event_t *event)
 
 	xcb_window_t 			  window = ev->window;
 
-	
-}
+	//TODO: functions
+	uint32_t x = 300;
+	uint32_t y = 300;
+	uint32_t width = 300; // call function to determine width
+	uint32_t height = 300; // call function to determine height
+	uint32_t border = 10;
+
+	addWindowToDesktop(master->currDesktop, window, x, y, width, height);
+
+	uint16_t configWindowMask = XCB_CONFIG_WINDOW_X | 
+								XCB_CONFIG_WINDOW_Y | 
+								XCB_CONFIG_WINDOW_WIDTH | 
+								XCB_CONFIG_WINDOW_HEIGHT | 
+								XCB_CONFIG_WINDOW_BORDER_WIDTH;
+
+	const uint32_t configValues[] = { x, y, width, height, border };
+	xcb_configure_window(dpy, 
+						 window,
+						 configWindowMask,
+						 configValues);
+
+	xcb_map_window(dpy, window);
+
+	//CALL FUNCTION HERE TO FIX THE REST OF THE WINDOWS ON THE DESKTOP
+
+	xcb_flush(dpy);
+}	
 
 
 /*
@@ -199,40 +224,10 @@ void initStructs(void)
 	master->height = screen->height_in_pixels;
 	master->panel = SHOW_PANEL;
 	master->num_desktops = NUM_DESKTOPS;
+	master->currDesktop = 0;
 
-	desktop_t * d_temp1 = (desktop_t *)malloc(sizeof(desktop_t));
-    desktop_t * d_temp2;
-	d_temp1->d_prev = NULL;
-	master->d_head = d_temp1;
- 
-	/* create linked list of desktops*/
-	int i;
-	for(i = 0; i < master->num_desktops-1; i++)
-	{
-		initDesktop(d_temp1);
-		d_temp2 = (desktop_t *)malloc(sizeof(desktop_t));
-		d_temp1->d_next = d_temp2;
-		d_temp2->d_prev = d_temp1;
-        d_temp1 = d_temp2;
-	}
-	initDesktop(d_temp1);
-    d_temp1->d_next = NULL;
-	master->d_tail = d_temp1;
-
+	master->desktops = (desktop_t *)malloc(sizeof(desktop_t)*NUM_DESKTOPS);
 	//need to initialize the desktop structs
-}
-
-void initDesktop(desktop_t * d_node)
-{
-	if(d_node)
-	{
-        //d_node->name = "tempname";
-        d_node->num_windows = 0;
-        d_node->w_head = NULL;
-        d_node->w_tail = NULL;
-        //would be cool if there was some default windows that we could launch
-        //d_node->tiling_mode = somekindofdefault;
-	}
 }
 
 void run(void)
@@ -268,7 +263,27 @@ void run(void)
 	}
 }
 
-void quit()
+void cleanup(void)
+{
+	int i;
+	window_t * iter;
+	for(i = 0; i < NUM_DESKTOPS; ++i)
+	{
+		iter = master->desktops[i].w_head;
+		while(iter != NULL)
+		{
+			window_t * next = iter->w_next;
+			free(iter);
+			iter = next;
+		}
+	}
+
+	free(master->desktops);
+	free(master);
+
+}
+
+void quit(void)
 {
 	running = false;
 	xcb_disconnect(dpy);
@@ -279,3 +294,47 @@ void launch(const Arg *arg)
 	fork();
 	execv((char*)(arg->com[0]), (char**)(arg->com));
 }
+
+desktop_t * getDesktop(int desktopNum)
+{
+	if(desktopNum >= 0 && desktopNum < NUM_DESKTOPS)
+	{
+		return &master->desktops[master->currDesktop];
+	}
+	else return NULL;
+}
+
+void addWindowToDesktop(int desktopNum, xcb_window_t window, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+{
+	// init new window struct
+	window_t * newWindow = (window_t *)malloc(sizeof(window_t));
+	newWindow->xcb_window = window;
+	newWindow->x = x;
+	newWindow->y = y;
+	newWindow->width = width;
+	newWindow->height = height;
+	newWindow->w_next = NULL;
+	newWindow->w_prev = NULL;
+
+	desktop_t * desktop = getDesktop(desktopNum);
+	if(desktop)
+	{
+		//add to head of linked list
+		if(desktop->w_head == NULL)
+		{
+			desktop->w_head = newWindow;
+		}
+		else
+		{
+			window_t * prevHead = desktop->w_head;
+			newWindow->w_next = prevHead;
+			prevHead->w_prev = newWindow;
+			desktop->w_head = newWindow;
+		}
+	}
+
+
+}
+
+
+
