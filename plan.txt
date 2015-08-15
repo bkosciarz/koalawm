@@ -2,6 +2,8 @@
 TODO:
 	Algorithm for basic tiling of WM
 		size of root window, # of windows, etc
+		See stack() function in monster-wm
+		In Monster WM they do not tile while mapping, they tile after mapping the windows. 
 
     Error Handling
 
@@ -9,13 +11,17 @@ TODO:
 
     Event function Array
 
-    Close window with MASTERKEY + C
-    In CLEANUP: Close all programs and windows
-
 
 TODOLATER:
 -----------------------------
 	Switch between desktops
+
+
+WORKED ON:
+-----------------------------
+Justin
+    Close window with MASTERKEY + C
+    In CLEANUP: Close all programs and windows (CURRENTLY WORKS ON ST)
 
 
 TEST/CHECK:
@@ -28,6 +34,8 @@ BUGS & STUFF TO FIX:
     Launching with dmenu opens window & gives control to native window manager(not DISPLAY 1)
 
     Terminal does not call map request on start up, unclear why.
+
+    Google Chrome does not close all instances on cleanup
 
 
 ????

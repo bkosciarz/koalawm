@@ -4,7 +4,7 @@
 static const char * terminal[] = {"/bin/sh", "-c", "st", NULL};
 static const char * menu[] = {"/bin/sh", "-c", "dmenu_run", NULL};
 
-#define MASTER_KEY XCB_MOD_MASK_4
+#define MASTER_KEY XCB_MOD_MASK_4 
 #define NUM_DESKTOPS 4
 #define SHOW_PANEL false
 
