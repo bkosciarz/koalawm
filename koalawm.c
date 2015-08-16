@@ -90,16 +90,17 @@ static void (*events[NUM_EVENTS])(xcb_generic_event_t *ev);
 
 /*functions*/
 int init(void);
+void initEvents(void);
+void initAtoms(void);
 void initKeys(void);
 void initStructs(void);
 
 void run(void);
-
 void handleKeyPress(xcb_generic_event_t *event);
 void handleMapRequest(xcb_generic_event_t *event);
 void addWindowToDesktop(int desktopNum, xcb_window_t window, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 desktop_t * getDesktop(int desktopNum);
-
+void configureWindow(xcb_window_t window, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 void launch(const Arg *arg);
 
 void quit();
@@ -121,12 +122,12 @@ int main(void)
  */
 int init(void)
 {
-    /* Open a connection to the X server that uses the value 
+    /* 
+     * Open a connection to the X server that uses the value 
 	 * of the DISPLAY ev and sets the screen to 0
 	 */
 
-
-	xcb_generic_error_t *error;
+	xcb_generic_error_t *error; // var reused to catch errors through xcb_request_check
 	if(xcb_connection_has_error(dpy = xcb_connect(NULL, NULL)))
 		exit(1);
 
@@ -138,18 +139,37 @@ int init(void)
                               XCB_EVENT_MASK_PROPERTY_CHANGE|
                               XCB_EVENT_MASK_BUTTON_PRESS};
 
-    //TODO: error checking using xcb_request_check
 	error = xcb_request_check(dpy, xcb_change_window_attributes(dpy, root, XCB_CW_EVENT_MASK, values));
 	if(error) exit(1); //everything won't work if root window properties are not changed
 	xcb_flush(dpy);
 
+	initEvents();
+	initAtoms();
+	initKeys();
+	initStructs();
+
+	return 0; 
+}
+
+
+/*
+ * initializes the event jump table
+ */ 
+void initEvents(void)
+{
 	//setup event array
 	for(unsigned int i = 0; i < NUM_EVENTS; ++i)
 		events[i] = NULL;
 	events[XCB_KEY_PRESS] 	= handleKeyPress;
 	events[XCB_MAP_REQUEST] = handleMapRequest;
+}
 
 
+/*
+ * Wrapper function to initialize atoms
+ */
+void initAtoms(void)
+{
 	//setup delete window atom
 	xcb_intern_atom_cookie_t cookies[WM_COUNT];
     xcb_intern_atom_reply_t  *reply;
@@ -166,10 +186,6 @@ int init(void)
     		printf("Got rekt getting %s atom\n", WM_ATOM_NAME[i]);
     }
 
-	initKeys();
-	initStructs();
-
-	return 0; 
 }
 
 void initKeys(void)
@@ -241,11 +257,12 @@ void handleKeyPress(xcb_generic_event_t *event)
 	xcb_key_symbols_t 	*keysyms;
 	xcb_keysym_t 		 keysym;
 
-	if (!(keysyms = xcb_key_symbols_alloc(dpy)))
+	if (!(keysyms = xcb_key_symbols_alloc(dpy))) //allocate array of keysyms
         exit(1);
-    keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
+    keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0); // get the keysym from the keycode and keysyms
     xcb_key_symbols_free(keysyms);
 
+    // iterate through key array until it finds the matching keysym, then calls function associated
     for(unsigned int i = 0; i < LENGTH(keys); ++i)
     {
     	if(keysym == keys[i].keysym)
@@ -262,28 +279,15 @@ void handleMapRequest(xcb_generic_event_t *event)
 
 	xcb_window_t 			  window = ev->window;
 
-	//TODO: functions
+	//TODO: HANDLING OF TILING
 	uint32_t x = 300;
 	uint32_t y = 300;
 	uint32_t width = 300; // call function to determine width
 	uint32_t height = 300; // call function to determine height
 
 	addWindowToDesktop(master->currDesktop, window, x, y, width, height);
-
-	uint16_t configWindowMask = XCB_CONFIG_WINDOW_X | 
-								XCB_CONFIG_WINDOW_Y | 
-								XCB_CONFIG_WINDOW_WIDTH | 
-								XCB_CONFIG_WINDOW_HEIGHT;
-
-	const uint32_t configValues[] = { x, y, width, height };
-	xcb_configure_window(dpy, 
-						 window,
-						 configWindowMask,
-						 configValues);
-
+	configureWindow(window, x, y, width, height);
 	xcb_map_window(dpy, window);
-
-	//CALL FUNCTION HERE TO FIX THE REST OF THE WINDOWS ON THE DESKTOP
 
 	xcb_flush(dpy);
 }	
@@ -303,6 +307,7 @@ void cleanup(void)
 		}
 	}
 
+	// free up master handler
 	free(master->desktops);
 	free(master);
 
@@ -312,7 +317,7 @@ void cleanup(void)
 	xcb_query_tree_reply_t  *query;
     xcb_window_t *c;
 
-    // set up event to kill window
+    // set up event to send to kill window
     xcb_client_message_event_t ev;
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.format = 32;
@@ -321,14 +326,15 @@ void cleanup(void)
     ev.data.data32[0] = wmatoms[WM_DELETE_WINDOW];
     ev.data.data32[1] = XCB_CURRENT_TIME;
 
-	query = xcb_query_tree_reply(dpy,xcb_query_tree(dpy,root),0);
+	query = xcb_query_tree_reply(dpy,xcb_query_tree(dpy,root),0); //query the tree of root
 	if(query)
 	{
-		c = xcb_query_tree_children(query); // get te 
+		// get the children from the query and iterate through them
+		c = xcb_query_tree_children(query);
         for (unsigned int i = 0; i != query->children_len; ++i) {
         	printf("THERE IS A CHILD %d\n", i);
-        	ev.window = c[i];
-        	xcb_send_event(dpy, 0, c[i], XCB_EVENT_MASK_NO_EVENT, (char*)&ev);
+        	ev.window = c[i]; // set the window in the client message event
+        	xcb_send_event(dpy, 0, c[i], XCB_EVENT_MASK_NO_EVENT, (char*)&ev); // send delete window event to the client
         	xcb_flush(dpy);
         }
         free(query);
@@ -358,7 +364,7 @@ desktop_t * getDesktop(int desktopNum)
 
 void addWindowToDesktop(int desktopNum, xcb_window_t window, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
-	// init new window struct
+	// init new window struct with parameters
 	window_t * newWindow = (window_t *)malloc(sizeof(window_t));
 	newWindow->xcb_window = window;
 	newWindow->x = x;
@@ -371,10 +377,11 @@ void addWindowToDesktop(int desktopNum, xcb_window_t window, uint32_t x, uint32_
 	desktop_t * desktop = getDesktop(desktopNum);
 	if(desktop)
 	{
-		//add to head of linked list
+		// if the list is empty
 		if(desktop->w_head == NULL)
 		{
 			desktop->w_head = newWindow;
+			desktop->w_tail = newWindow;
 		}
 		else
 		{
@@ -384,8 +391,23 @@ void addWindowToDesktop(int desktopNum, xcb_window_t window, uint32_t x, uint32_
 			desktop->w_head = newWindow;
 		}
 	}
+}
 
+/* 
+ * Sets the configuration mask and configures the window to the parameters
+ */
+void configureWindow(xcb_window_t window, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+{
+	uint16_t configWindowMask = XCB_CONFIG_WINDOW_X | 
+								XCB_CONFIG_WINDOW_Y | 
+								XCB_CONFIG_WINDOW_WIDTH | 
+								XCB_CONFIG_WINDOW_HEIGHT;
 
+	const uint32_t configValues[] = { x, y, width, height };
+	xcb_configure_window(dpy, 
+						 window,
+						 configWindowMask,
+						 configValues);
 }
 
 
